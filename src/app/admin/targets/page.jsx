@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import PageHeader from '@/components/ui/PageHeader'
 import { targetAdminService } from '@/services/targetAdminService'
 import { employeeService } from '@/services/employeeService'
+import { notificationService } from '@/services/notificationService'
 
 export default function AdminTargetsPage() {
   const queryClient = useQueryClient()
@@ -42,17 +43,34 @@ export default function AdminTargetsPage() {
   })
 
   const assignMutation = useMutation({
-    mutationFn: () => employeeService.assignTarget(selectedEmp.id, {
-      month, year,
-      target_points: Number(targetPoints),
-      target_amount: 0,
-      target_units: 0,
-    }),
+    mutationFn: async () => {
+      const res = await employeeService.assignTarget(selectedEmp.id, {
+        month, year,
+        target_points: Number(targetPoints),
+        target_amount: 0,
+        target_units: 0,
+      })
+
+      // Send in-app notification to the employee
+      try {
+        await notificationService.createTargetNotification({
+          employee_id: selectedEmp.id,
+          employee_name: selectedEmp.full_name,
+          target_points: Number(targetPoints),
+          month,
+          year,
+        })
+      } catch (notifErr) {
+        console.error('Failed to dispatch notification:', notifErr)
+      }
+
+      return res
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['targetPerformance'] })
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] })
       queryClient.invalidateQueries({ queryKey: ['adminMetrics'] })
-      toast.success(`Target assigned to ${selectedEmp.full_name}`)
+      toast.success(`Target assigned & notification sent to ${selectedEmp.full_name}`)
       setAssignOpen(false)
     },
     onError: (err) => toast.error(`Error: ${err.message}`),

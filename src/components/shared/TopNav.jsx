@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { authService } from '@/services/authService'
 import { Bell, User, LogOut, ChevronRight, Settings, ShieldCheck, Sparkles, UserCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import NotificationPanel from '@/components/shared/NotificationPanel'
 import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
@@ -98,9 +99,14 @@ export default function TopNav({ breadcrumbs = [] }) {
           </Badge>
         )}
 
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100">
-          <Bell className="h-4 w-4" />
-        </Button>
+        {/* Notification Bell — live for employees, decorative for admins */}
+        {!isAdmin ? (
+          <NotificationPanel />
+        ) : (
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100">
+            <Bell className="h-4 w-4" />
+          </Button>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
