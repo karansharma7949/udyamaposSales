@@ -117,7 +117,7 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
 
   const getCellColor = (pts, isInYear) => {
     if (!isInYear) return "bg-transparent opacity-0 pointer-events-none"
-    if (!pts || pts === 0) return "bg-zinc-200/80 hover:bg-zinc-300 dark:bg-zinc-800"
+    if (!pts || pts === 0) return "bg-[#ebedf0] hover:bg-zinc-200 border border-zinc-200/80"
     if (pts < 20) return "bg-emerald-400 hover:bg-emerald-500 shadow-2xs"
     if (pts < 50) return "bg-emerald-500 hover:bg-emerald-600 shadow-xs"
     if (pts < 100) return "bg-emerald-600 hover:bg-emerald-700 shadow-xs"
@@ -142,15 +142,15 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
 
           {/* Quick Metrics Bar — wraps neatly on mobile */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-md font-semibold">
+            <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2.5 py-1 rounded-md font-semibold">
               <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
               <span>{totalYearPoints.toLocaleString()} Total Pts</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-md font-semibold">
+            <div className="flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200/60 px-2.5 py-1 rounded-md font-semibold">
               <Flame className="h-3.5 w-3.5 text-amber-500" />
               <span>{currentStreak} Day Streak</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2.5 py-1 rounded-md font-medium">
+            <div className="flex items-center gap-1.5 bg-zinc-100 text-zinc-700 border border-zinc-200/60 px-2.5 py-1 rounded-md font-medium">
               <Trophy className="h-3.5 w-3.5 text-zinc-500" />
               <span>Best: {maxPointsInDay} pts/day</span>
             </div>
@@ -159,11 +159,10 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
       </CardHeader>
 
       <CardContent className="p-4 sm:p-5">
-        <div className="overflow-x-auto pb-2 scrollbar-thin">
+        <div className="overflow-x-auto pt-4 pb-3 scrollbar-thin">
           <div className="min-w-[760px]">
-            {/* Month Labels — absolutely positioned so each label sits exactly above its week column */}
-            {/* WEEK_PX = 15 (12px cell + 3px gap). Day-label gutter = 32px (ml-8) */}
-            <div className="relative mb-2" style={{ height: '14px', marginLeft: '32px' }}>
+            {/* Month Labels — positioned above each week column */}
+            <div className="relative mb-5" style={{ height: '14px', marginLeft: '32px' }}>
               {monthPositions.map((pos, idx) => (
                 <span
                   key={idx}
@@ -195,13 +194,77 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
                           key={dIdx}
                           onMouseEnter={() => setHoveredDay(day)}
                           onMouseLeave={() => setHoveredDay(null)}
-                          onClick={() => setSelectedDay(day)}
+                          onClick={() => setSelectedDay(selectedDay?.dateStr === day.dateStr ? null : day)}
                           className={cn(
                             "w-[12px] h-[12px] rounded-[2.5px] transition-all duration-150 cursor-pointer relative",
                             getCellColor(day.points, day.isInYear),
-                            isHighlighted && "ring-2 ring-emerald-500 scale-125 z-10"
+                            isHighlighted && "ring-2 ring-emerald-500 scale-125 z-40"
                           )}
-                        />
+                        >
+                          {/* Real Floating Tooltip directly on box when tapped or hovered */}
+                          {isHighlighted && day.isInYear && (
+                            <div
+                              className={cn(
+                                "absolute z-50 pointer-events-none whitespace-nowrap select-none",
+                                dIdx <= 2 ? "top-full mt-2" : "bottom-full mb-2",
+                                wIdx < 5
+                                  ? "left-0"
+                                  : wIdx > 46
+                                  ? "right-0"
+                                  : "left-1/2 -translate-x-1/2"
+                              )}
+                            >
+                              {/* Upward Arrow if placed below */}
+                              {dIdx <= 2 && (
+                                <div
+                                  className={cn(
+                                    "w-2 h-2 bg-zinc-900 rotate-45 border-l border-t border-zinc-700/60 -mb-1",
+                                    wIdx < 5 ? "ml-2.5" : wIdx > 46 ? "ml-auto mr-2.5" : "mx-auto"
+                                  )}
+                                />
+                              )}
+
+                              {/* Tooltip Content Bubble */}
+                              <div className="bg-zinc-900 text-white text-[11px] font-medium py-1.5 px-3 rounded-lg shadow-2xl border border-zinc-700/80 flex items-center gap-1.5">
+                                {day.points > 0 ? (
+                                  <>
+                                    <span className="font-bold text-emerald-400 flex items-center gap-1">
+                                      <Sparkles className="h-3 w-3 inline text-emerald-400" />
+                                      {day.points} {day.points === 1 ? 'pt' : 'pts'}
+                                    </span>
+                                    <span className="text-zinc-500">•</span>
+                                    <span className="text-zinc-200">
+                                      {day.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </span>
+                                    {day.salesCount > 0 && (
+                                      <span className="text-zinc-400 text-[10px]">
+                                        ({day.salesCount} {day.salesCount === 1 ? 'sale' : 'sales'})
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-zinc-400 font-semibold">0 pts</span>
+                                    <span className="text-zinc-500">•</span>
+                                    <span className="text-zinc-300">
+                                      {day.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Downward Arrow if placed above */}
+                              {dIdx > 2 && (
+                                <div
+                                  className={cn(
+                                    "w-2 h-2 bg-zinc-900 rotate-45 border-r border-b border-zinc-700/60 -mt-1",
+                                    wIdx < 5 ? "ml-2.5" : wIdx > 46 ? "ml-auto mr-2.5" : "mx-auto"
+                                  )}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )
                     })}
                   </div>
@@ -231,7 +294,7 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
               {/* Intensity Scale Legend */}
               <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
                 <span>Less</span>
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-zinc-200 border border-zinc-300/60 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-[#ebedf0] border border-zinc-200/80 inline-block" />
                 <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-400 border border-emerald-500 inline-block" />
                 <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-500 border border-emerald-600 inline-block" />
                 <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-600 border border-emerald-700 inline-block" />
