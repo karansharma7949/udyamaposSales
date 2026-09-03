@@ -39,6 +39,9 @@ const CommandInput = React.forwardRef(({ className, ...props }, ref) => {
         ref={ref}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.preventDefault()
+        }}
         className={cn(
           "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
           className
@@ -60,6 +63,9 @@ const CommandList = React.forwardRef(({ className, ...props }, ref) => (
 CommandList.displayName = "CommandList"
 
 const CommandEmpty = React.forwardRef(({ className, ...props }, ref) => {
+  const { search } = React.useContext(CommandContext)
+  if (!search) return null
+
   return (
     <div
       ref={ref}

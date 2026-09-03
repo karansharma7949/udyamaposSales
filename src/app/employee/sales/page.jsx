@@ -30,6 +30,8 @@ export default function EmployeeSalesPage() {
   const [celebrationData, setCelebrationData] = useState(null)
   const [isCelebrationOpen, setIsCelebrationOpen] = useState(false)
 
+  const [formKey, setFormKey] = useState(0)
+
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -55,13 +57,18 @@ export default function EmployeeSalesPage() {
   const totalCount = salesData?.count || 0
   const totalPages = Math.ceil(totalCount / 10)
 
+  const handleOpenSaleDialog = (open) => {
+    if (open) setFormKey(k => k + 1)
+    setSaleOpen(open)
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Sales Records"
         description="Log your sales transactions, track points earned, and view order history"
         actions={
-          <Dialog open={saleOpen} onOpenChange={setSaleOpen}>
+          <Dialog open={saleOpen} onOpenChange={handleOpenSaleDialog}>
             <DialogTrigger asChild>
               <Button className="gap-1.5 shadow-xs"><Plus className="h-4 w-4" /> Log Sale</Button>
             </DialogTrigger>
@@ -72,6 +79,7 @@ export default function EmployeeSalesPage() {
                 </DialogTitle>
               </DialogHeader>
               <SaleForm
+                key={formKey}
                 onSubmit={async (data) => {
                   try {
                     const created = await salesService.createSale({
@@ -106,6 +114,7 @@ export default function EmployeeSalesPage() {
         employeeName={user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Champion'}
         onLogAnother={() => {
           setIsCelebrationOpen(false)
+          setFormKey(k => k + 1)
           setSaleOpen(true)
         }}
       />

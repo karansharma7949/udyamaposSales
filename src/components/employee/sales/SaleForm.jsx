@@ -1,16 +1,27 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Loader2, Search, Sparkles, ShoppingCart, Tag } from 'lucide-react'
+import {
+  Loader2,
+  Search,
+  Sparkles,
+  ShoppingCart,
+  Tag,
+  ChevronDown,
+  Check,
+  X,
+  Package,
+  Calendar as CalendarIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { productService } from '@/services/productService'
@@ -28,7 +39,10 @@ const saleSchema = z.object({
 export default function SaleForm({ initialData, onSubmit, isLoading }) {
   const [products, setProducts] = useState([])
   const [selectedProduct, setSelectedProduct] = useState(null)
-  const [isOpen, setIsOpen] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const dropdownRef = useRef(null)
+  const searchInputRef = useRef(null)
 
   const form = useForm({
     resolver: zodResolver(saleSchema),
@@ -47,7 +61,7 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
     },
   })
 
-  // Fetch products
+  // Fetch active products
   useEffect(() => {
     async function loadProducts() {
       try {
@@ -55,7 +69,7 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
         setProducts(data || [])
 
         if (initialData?.product_id) {
-          const product = data.find(p => p.id === initialData.product_id)
+          const product = (data || []).find(p => p.id === initialData.product_id)
           if (product) setSelectedProduct(product)
         }
       } catch (err) {
@@ -65,22 +79,58 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
     loadProducts()
   }, [initialData])
 
-  // Watch inputs
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isDropdownOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus()
+      }, 50)
+    } else {
+      setSearchQuery('')
+    }
+  }, [isDropdownOpen])
+
+  // Handle outside click to close product dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isDropdownOpen])
+
+  // Filter products by name, code, category
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products
+    const q = searchQuery.toLowerCase().trim()
+    return products.filter((p) => {
+      const name = (p.product_name || '').toLowerCase()
+      const code = (p.product_code || '').toLowerCase()
+      const cat = (p.category || '').toLowerCase()
+      return name.includes(q) || code.includes(q) || cat.includes(q)
+    })
+  }, [products, searchQuery])
+
+  // Watch inputs for live calculation
   const qty = form.watch('quantity') || 1
   const soldPrice = form.watch('sold_at_price') || 0
 
-  // When product changes, set default unit price to sold_at_price
-  const handleProductSelect = (id) => {
-    const product = products.find(p => p.id === id)
+  // When product is selected
+  const handleProductSelect = (product) => {
     setSelectedProduct(product)
-    form.setValue('product_id', id)
-    if (product) {
-      const defaultPrice = Number(product.unit_price || 0)
-      form.setValue('sold_at_price', defaultPrice)
-      form.setValue('total_amount', defaultPrice * qty)
-      form.setValue('points_earned', Number(product.points_per_unit || 0) * qty)
-    }
-    setIsOpen(false)
+    form.setValue('product_id', product.id, { shouldValidate: true })
+    const defaultPrice = Number(product.unit_price || 0)
+    form.setValue('sold_at_price', defaultPrice)
+    form.setValue('total_amount', defaultPrice * qty)
+    form.setValue('points_earned', Number(product.points_per_unit || 0) * qty)
+    setIsDropdownOpen(false)
+    setSearchQuery('')
   }
 
   // Update total amount & points when quantity or sold_at_price changes
@@ -109,56 +159,178 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-        {/* Product Selector */}
+        {/* Product Selector with dedicated Search Combobox */}
         <FormField
           control={form.control}
           name="product_id"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel className="text-xs font-semibold text-zinc-700">Product</FormLabel>
-              <Popover open={isOpen} onOpenChange={setIsOpen}>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className={cn(
-                        "justify-between w-full font-normal h-9 border-zinc-200 bg-zinc-50/50 text-sm",
-                        !field.value && "text-zinc-400"
+              <FormLabel className="text-xs font-semibold text-zinc-700 flex items-center justify-between">
+                <span>Product <span className="text-rose-500">*</span></span>
+                {selectedProduct && (
+                  <span className="text-[11px] font-normal text-zinc-500">
+                    {selectedProduct.category || 'Standard'}
+                  </span>
+                )}
+              </FormLabel>
+
+              <div ref={dropdownRef} className="relative w-full">
+                {/* Trigger Button - explicitly type="button" to NEVER submit the form! */}
+                <button
+                  type="button"
+                  id="product-search-trigger"
+                  onClick={() => setIsDropdownOpen((prev) => !prev)}
+                  className={cn(
+                    "w-full flex items-center justify-between h-10 px-3 rounded-lg border text-left transition-all outline-none",
+                    isDropdownOpen ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-white" : "border-zinc-200 bg-zinc-50/70 hover:bg-zinc-100 hover:border-zinc-300",
+                    !selectedProduct && "text-zinc-400"
+                  )}
+                  aria-expanded={isDropdownOpen}
+                  aria-haspopup="listbox"
+                >
+                  {selectedProduct ? (
+                    <div className="flex items-center justify-between w-full min-w-0 pr-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Package className="h-4 w-4 text-indigo-600 shrink-0" />
+                        <span className="text-xs font-semibold text-zinc-900 truncate">
+                          {selectedProduct.product_name}
+                        </span>
+                        {selectedProduct.product_code && (
+                          <span className="hidden sm:inline-block text-[10px] font-mono bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded shrink-0">
+                            {selectedProduct.product_code}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className="text-xs font-semibold text-zinc-700">
+                          ₹{Number(selectedProduct.unit_price).toLocaleString()}
+                        </span>
+                        <Badge className="bg-indigo-100 hover:bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px] px-1.5 py-0">
+                          +{Number(selectedProduct.points_per_unit || 0)} pts
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-zinc-400">
+                      <Search className="h-4 w-4 text-zinc-400" />
+                      <span>Search or select a product...</span>
+                    </div>
+                  )}
+
+                  <ChevronDown className={cn(
+                    "h-4 w-4 text-zinc-400 shrink-0 ml-1.5 transition-transform duration-200",
+                    isDropdownOpen && "rotate-180 text-indigo-600"
+                  )} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 w-full rounded-xl border border-zinc-200 bg-white shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95">
+                    {/* Search Input Bar */}
+                    <div className="p-2 border-b border-zinc-100 bg-zinc-50/50 flex items-center gap-2">
+                      <Search className="h-4 w-4 text-zinc-400 shrink-0 ml-1" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            if (filteredProducts.length > 0) {
+                              handleProductSelect(filteredProducts[0])
+                            }
+                          }
+                          if (e.key === 'Escape') {
+                            e.preventDefault()
+                            setIsDropdownOpen(false)
+                          }
+                        }}
+                        placeholder="Type to search by name, code, or category..."
+                        className="w-full text-xs bg-transparent outline-none placeholder:text-zinc-400 text-zinc-900 py-1"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       )}
-                    >
-                      {field.value
-                        ? products.find((p) => p.id === field.value)?.product_name
-                        : "Select product..."}
-                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-40" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 border-zinc-200 bg-white shadow-lg">
-                  <Command>
-                    <CommandInput placeholder="Search product..." className="h-9 text-xs" />
-                    <CommandList>
-                      <CommandEmpty className="py-4 text-center text-xs text-zinc-500">No product found.</CommandEmpty>
-                      <CommandGroup>
-                        {products.map((product) => (
-                          <CommandItem
-                            key={product.id}
-                            value={product.product_name}
-                            onSelect={() => handleProductSelect(product.id)}
-                            className="cursor-pointer text-xs"
-                          >
-                            <span>{product.product_name}</span>
-                            <div className="ml-auto flex items-center gap-2 text-zinc-500 text-[11px]">
-                              <span>₹{Number(product.unit_price).toLocaleString()}</span>
-                              <span className="font-semibold text-indigo-600">({Number(product.points_per_unit || 0)} pts)</span>
+                    </div>
+
+                    {/* Product List */}
+                    <div className="max-h-60 overflow-y-auto p-1 divide-y divide-zinc-100/60" role="listbox">
+                      {filteredProducts.length === 0 ? (
+                        <div className="py-8 px-4 text-center space-y-1.5">
+                          <Package className="h-6 w-6 text-zinc-300 mx-auto" />
+                          <p className="text-xs font-semibold text-zinc-700">No products found</p>
+                          <p className="text-[11px] text-zinc-400">
+                            {searchQuery ? `No product matching "${searchQuery}"` : 'No active products available'}
+                          </p>
+                        </div>
+                      ) : (
+                        filteredProducts.map((product) => {
+                          const isSelected = selectedProduct?.id === product.id
+                          return (
+                            <div
+                              key={product.id}
+                              role="option"
+                              aria-selected={isSelected}
+                              onClick={() => handleProductSelect(product)}
+                              className={cn(
+                                "flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors text-left",
+                                isSelected ? "bg-indigo-50 text-indigo-900 font-medium" : "hover:bg-zinc-50"
+                              )}
+                            >
+                              <div className="min-w-0 pr-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium text-zinc-900 truncate">
+                                    {product.product_name}
+                                  </span>
+                                  {isSelected && (
+                                    <Check className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {product.product_code && (
+                                    <span className="text-[10px] font-mono bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded">
+                                      {product.product_code}
+                                    </span>
+                                  )}
+                                  {product.category && (
+                                    <span className="text-[10px] text-zinc-400">
+                                      • {product.category}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                                <span className="text-xs font-semibold text-zinc-900">
+                                  ₹{Number(product.unit_price).toLocaleString()}
+                                </span>
+                                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">
+                                  +{Number(product.points_per_unit || 0)} pts
+                                </span>
+                              </div>
                             </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                          )
+                        })
+                      )}
+                    </div>
+
+                    {/* Footer Status */}
+                    {filteredProducts.length > 0 && (
+                      <div className="px-3 py-1.5 border-t border-zinc-100 bg-zinc-50/70 flex items-center justify-between text-[10px] text-zinc-400">
+                        <span>{filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} available</span>
+                        <span>Press Enter to select</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -210,7 +382,9 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
+                      {/* Explicit type="button" to prevent form submission on date pick */}
                       <Button
+                        type="button"
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal h-9 border-zinc-200 bg-zinc-50/50 text-xs",
@@ -218,6 +392,7 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
                         )}
                       >
                         {field.value ? format(field.value, "PP") : <span>Pick date</span>}
+                        <CalendarIcon className="ml-auto h-3.5 w-3.5 text-zinc-400" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -284,7 +459,16 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
         />
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" size="sm" onClick={() => form.reset()} className="text-xs text-zinc-500">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              form.reset()
+              setSelectedProduct(null)
+            }}
+            className="text-xs text-zinc-500"
+          >
             Clear
           </Button>
           <Button type="submit" size="sm" disabled={isLoading || !selectedProduct} className="gap-1.5 font-medium shadow-xs">

@@ -6,7 +6,7 @@ const PopoverContext = React.createContext({
   setOpen: () => {},
 })
 
-const Popover = ({ open: controlledOpen, onOpenChange, children }) => {
+const Popover = ({ open: controlledOpen, onOpenChange, className, children }) => {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : uncontrolledOpen
@@ -23,7 +23,7 @@ const Popover = ({ open: controlledOpen, onOpenChange, children }) => {
 
   return (
     <PopoverContext.Provider value={{ open, setOpen }}>
-      <div className="relative inline-block">{children}</div>
+      <div className={cn("relative", className || "inline-block")}>{children}</div>
     </PopoverContext.Provider>
   )
 }
