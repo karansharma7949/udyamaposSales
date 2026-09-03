@@ -235,7 +235,7 @@ export default function EmployeeProfilePage() {
         {/* Right Column: Profile Edit & Password */}
         <div className="md:col-span-2 space-y-6">
           {/* General Information */}
-          <Card className="border-zinc-200">
+          <Card className="border-zinc-200 shadow-xs">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-zinc-900">Personal Information</CardTitle>
               <CardDescription className="text-xs">Update your display name and view account details</CardDescription>
@@ -247,7 +247,7 @@ export default function EmployeeProfilePage() {
                   <Input
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="h-9 border-zinc-200 bg-zinc-50/50 text-sm focus:bg-white"
+                    className="h-10 border-zinc-200 bg-zinc-50/50 text-sm focus:bg-white"
                   />
                 </div>
 
@@ -257,7 +257,7 @@ export default function EmployeeProfilePage() {
                     <Input
                       value={user?.email || ''}
                       disabled
-                      className="h-9 border-zinc-200 bg-zinc-100 text-zinc-500 text-xs cursor-not-allowed"
+                      className="h-10 border-zinc-200 bg-zinc-100 text-zinc-500 text-xs cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -265,13 +265,13 @@ export default function EmployeeProfilePage() {
                     <Input
                       value={profile?.employee_code || 'N/A'}
                       disabled
-                      className="h-9 border-zinc-200 bg-zinc-100 text-zinc-500 text-xs cursor-not-allowed"
+                      className="h-10 border-zinc-200 bg-zinc-100 text-zinc-500 text-xs cursor-not-allowed"
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end pt-1">
-                  <Button type="submit" size="sm" disabled={savingProfile} className="gap-1.5 shadow-xs">
+                  <Button type="submit" size="sm" disabled={savingProfile} className="w-full sm:w-auto gap-1.5 shadow-xs h-9">
                     {savingProfile && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     Save Changes
                   </Button>
@@ -281,7 +281,7 @@ export default function EmployeeProfilePage() {
           </Card>
 
           {/* Change Password */}
-          <Card className="border-zinc-200">
+          <Card className="border-zinc-200 shadow-xs">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-zinc-900">Security & Password</CardTitle>
               <CardDescription className="text-xs">Update your account password</CardDescription>
@@ -296,7 +296,7 @@ export default function EmployeeProfilePage() {
                       placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="h-9 border-zinc-200 bg-zinc-50/50 text-sm focus:bg-white"
+                      className="h-10 border-zinc-200 bg-zinc-50/50 text-sm focus:bg-white"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -306,7 +306,7 @@ export default function EmployeeProfilePage() {
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="h-9 border-zinc-200 bg-zinc-50/50 text-sm focus:bg-white"
+                      className="h-10 border-zinc-200 bg-zinc-50/50 text-sm focus:bg-white"
                     />
                   </div>
                 </div>
@@ -317,7 +317,7 @@ export default function EmployeeProfilePage() {
                     variant="outline"
                     size="sm"
                     disabled={updatingPassword || !newPassword}
-                    className="gap-1.5"
+                    className="w-full sm:w-auto gap-1.5 h-9"
                   >
                     {updatingPassword && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     Update Password
@@ -335,10 +335,10 @@ export default function EmployeeProfilePage() {
       {/* Monthly Target Performance History Table */}
       <TargetHistoryTable employeeId={employeeId} />
 
-      {/* Sale Logs History Table */}
-      <Card className="border-zinc-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      {/* Sale Logs History Table & Mobile Cards */}
+      <Card className="border-zinc-200 shadow-xs">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <CardTitle className="text-sm font-semibold text-zinc-900 flex items-center gap-2">
                 <Clock className="h-4 w-4 text-zinc-500" />
@@ -351,54 +351,99 @@ export default function EmployeeProfilePage() {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 sm:p-0">
           {historyLoading ? (
-            <div className="p-5 space-y-3">
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 rounded-lg" />)}
+            <div className="p-4 sm:p-5 space-y-3">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
             </div>
           ) : !salesHistory?.length ? (
-            <div className="py-16 text-center text-sm text-zinc-500">
+            <div className="py-14 text-center text-sm text-zinc-500">
               No sales logged yet.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product Name</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Sold at Price</TableHead>
-                  <TableHead className="text-center">Points Earned</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead className="text-right">Date & Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile Card List (< 640px) */}
+              <div className="divide-y divide-zinc-100 sm:hidden">
                 {salesHistory.map((sale) => {
                   const soldPrice = sale.sold_at_price || (sale.total_amount && sale.quantity ? sale.total_amount / sale.quantity : sale.products?.unit_price || 0)
+                  const totalAmt = Number(sale.total_amount || Number(soldPrice) * Number(sale.quantity || 1))
+
                   return (
-                    <TableRow key={sale.id} className="hover:bg-zinc-50/80 transition-colors">
-                      <TableCell className="font-semibold text-zinc-900">
-                        {sale.products?.product_name || 'Product'}
-                      </TableCell>
-                      <TableCell className="text-right text-zinc-700">{sale.quantity}</TableCell>
-                      <TableCell className="text-right font-medium text-zinc-700">₹{Number(soldPrice).toLocaleString()}</TableCell>
-                      <TableCell className="text-center">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <Sparkles className="h-3 w-3" />
-                          {Number(sale.points_earned || 0)} pts
+                    <div key={sale.id} className="p-3.5 space-y-2 hover:bg-zinc-50/70 transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-semibold text-zinc-900 text-xs leading-snug">
+                          {sale.products?.product_name || 'Product'}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-xs text-zinc-500 max-w-[200px] truncate">
-                        {sale.notes || '—'}
-                      </TableCell>
-                      <TableCell className="text-right text-zinc-500 text-xs">
-                        {formatLocalDateTime(sale.sale_date)}
-                      </TableCell>
-                    </TableRow>
+                        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Sparkles className="h-3 w-3" />
+                          +{Number(sale.points_earned || 0)} pts
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                        <span>
+                          {sale.quantity} {sale.quantity === 1 ? 'unit' : 'units'} × ₹{Number(soldPrice).toLocaleString()}
+                        </span>
+                        <span className="font-semibold text-zinc-900">
+                          ₹{totalAmt.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-0.5 border-t border-zinc-50">
+                        <span>{formatLocalDateTime(sale.sale_date)}</span>
+                        {sale.notes && (
+                          <span className="truncate max-w-[140px] text-zinc-500 bg-zinc-100 px-1.5 py-0.2 rounded font-medium">
+                            {sale.notes}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   )
                 })}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop Data Table (>= 640px) */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product Name</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead className="text-right">Sold at Price</TableHead>
+                      <TableHead className="text-center">Points Earned</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead className="text-right">Date & Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {salesHistory.map((sale) => {
+                      const soldPrice = sale.sold_at_price || (sale.total_amount && sale.quantity ? sale.total_amount / sale.quantity : sale.products?.unit_price || 0)
+                      return (
+                        <TableRow key={sale.id} className="hover:bg-zinc-50/80 transition-colors">
+                          <TableCell className="font-semibold text-zinc-900">
+                            {sale.products?.product_name || 'Product'}
+                          </TableCell>
+                          <TableCell className="text-right text-zinc-700">{sale.quantity}</TableCell>
+                          <TableCell className="text-right font-medium text-zinc-700">₹{Number(soldPrice).toLocaleString()}</TableCell>
+                          <TableCell className="text-center">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <Sparkles className="h-3 w-3" />
+                              {Number(sale.points_earned || 0)} pts
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs text-zinc-500 max-w-[200px] truncate">
+                            {sale.notes || '—'}
+                          </TableCell>
+                          <TableCell className="text-right text-zinc-500 text-xs">
+                            {formatLocalDateTime(sale.sale_date)}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

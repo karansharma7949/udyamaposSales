@@ -195,8 +195,8 @@ export default function EmployeeDashboard() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {salesLoading ? (
-            <div className="p-5 space-y-3">
+          {isLoading ? (
+            <div className="p-4 sm:p-5 space-y-3">
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 rounded-lg" />)}
             </div>
           ) : !recentSales?.length ? (
@@ -204,37 +204,34 @@ export default function EmployeeDashboard() {
               No sales recorded this month. <Link href="/employee/sales" className="text-zinc-900 font-semibold underline">Log your first sale</Link>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Sold at Price</TableHead>
-                  <TableHead className="text-center">Points Earned</TableHead>
-                  <TableHead className="text-right">Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile Recent Sales Cards (< 640px) */}
+              <div className="divide-y divide-zinc-100 sm:hidden">
                 {recentSales.slice(0, 6).map((sale) => {
                   const soldPrice = sale.sold_at_price || (sale.total_amount && sale.quantity ? sale.total_amount / sale.quantity : sale.products?.unit_price || 0)
                   return (
-                    <TableRow key={sale.id} className="hover:bg-zinc-50/80 transition-colors">
-                      <TableCell className="font-semibold text-zinc-900">
-                        {sale.products?.product_name || 'Product'}
-                      </TableCell>
-                      <TableCell className="text-right text-zinc-700">{sale.quantity}</TableCell>
-                      <TableCell className="text-right font-medium text-zinc-700">₹{Number(soldPrice).toLocaleString()}</TableCell>
-                      <TableCell className="text-center">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <Sparkles className="h-3 w-3" />
-                          {Number(sale.points_earned || 0)} pts
+                    <div key={sale.id} className="p-3.5 space-y-2 hover:bg-zinc-50/70 transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-semibold text-zinc-900 text-xs truncate">
+                          {sale.products?.product_name || 'Product'}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-right text-zinc-500 text-xs">
-                        {formatLocalDate(sale.sale_date)}
-                      </TableCell>
-                      <TableCell className="text-right">
+                        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Sparkles className="h-3 w-3" />
+                          +{Number(sale.points_earned || 0)} pts
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                        <span>
+                          {sale.quantity} {sale.quantity === 1 ? 'unit' : 'units'} × ₹{Number(soldPrice).toLocaleString()}
+                        </span>
+                        <span className="font-semibold text-zinc-900">
+                          ₹{Number(sale.total_amount || Number(soldPrice) * Number(sale.quantity || 1)).toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-zinc-50 text-[10px] text-zinc-400">
+                        <span>{formatLocalDate(sale.sale_date)}</span>
                         <ConfirmationDialog
                           title="Delete Sale Record?"
                           description={`Are you sure you want to delete this sale for ${sale.products?.product_name || 'this item'} (${sale.quantity} units, ${Number(sale.points_earned || 0)} pts)? This will deduct the points earned and update your leaderboard standing.`}
@@ -256,20 +253,90 @@ export default function EmployeeDashboard() {
                           trigger={
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              size="sm"
+                              className="h-6 px-1.5 text-rose-600 hover:bg-rose-50 text-xs font-medium gap-1"
                               title="Delete sale log"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3 w-3" /> Delete
                             </Button>
                           }
                         />
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   )
                 })}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop Recent Sales Table (>= 640px) */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead className="text-right">Sold at Price</TableHead>
+                      <TableHead className="text-center">Points Earned</TableHead>
+                      <TableHead className="text-right">Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentSales.slice(0, 6).map((sale) => {
+                      const soldPrice = sale.sold_at_price || (sale.total_amount && sale.quantity ? sale.total_amount / sale.quantity : sale.products?.unit_price || 0)
+                      return (
+                        <TableRow key={sale.id} className="hover:bg-zinc-50/80 transition-colors">
+                          <TableCell className="font-semibold text-zinc-900">
+                            {sale.products?.product_name || 'Product'}
+                          </TableCell>
+                          <TableCell className="text-right text-zinc-700">{sale.quantity}</TableCell>
+                          <TableCell className="text-right font-medium text-zinc-700">₹{Number(soldPrice).toLocaleString()}</TableCell>
+                          <TableCell className="text-center">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <Sparkles className="h-3 w-3" />
+                              {Number(sale.points_earned || 0)} pts
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right text-zinc-500 text-xs">
+                            {formatLocalDate(sale.sale_date)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <ConfirmationDialog
+                              title="Delete Sale Record?"
+                              description={`Are you sure you want to delete this sale for ${sale.products?.product_name || 'this item'} (${sale.quantity} units, ${Number(sale.points_earned || 0)} pts)? This will deduct the points earned and update your leaderboard standing.`}
+                              confirmText="Yes, Delete Sale"
+                              variant="destructive"
+                              onConfirm={async () => {
+                                try {
+                                  await salesService.deleteSale(sale.id)
+                                  toast.success('Sale record deleted successfully')
+                                  queryClient.invalidateQueries({ queryKey: ['empRecentSales'] })
+                                  queryClient.invalidateQueries({ queryKey: ['empTodayAggregates'] })
+                                  queryClient.invalidateQueries({ queryKey: ['empAggregates'] })
+                                  queryClient.invalidateQueries({ queryKey: ['empSalesPaginated'] })
+                                  queryClient.invalidateQueries({ queryKey: ['leaderboard'] })
+                                } catch (err) {
+                                  toast.error(err.message || 'Failed to delete sale')
+                                }
+                              }}
+                              trigger={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                  title="Delete sale log"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              }
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

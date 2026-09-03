@@ -85,16 +85,16 @@ export default function EmployeeLeaderboardPage() {
       />
 
       {/* Timeframe Filter Bar */}
-      <div className="p-3.5 bg-white rounded-xl border border-zinc-200 shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Preset Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-zinc-100/80 p-1 rounded-lg border border-zinc-200/60">
+      <div className="p-3 sm:p-3.5 bg-white rounded-xl border border-zinc-200 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Preset Buttons — horizontal scroll on small devices */}
+          <div className="flex items-center gap-1.5 bg-zinc-100/80 p-1 rounded-lg border border-zinc-200/60 overflow-x-auto no-scrollbar max-w-full">
             {timeframes.map((tf) => (
               <button
                 key={tf.id}
                 onClick={() => setTimeframe(tf.id)}
                 className={cn(
-                  "px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer",
+                  "px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap",
                   timeframe === tf.id
                     ? "bg-zinc-900 text-white shadow-xs"
                     : "text-zinc-600 hover:text-zinc-900 hover:bg-white/60"
@@ -109,7 +109,7 @@ export default function EmployeeLeaderboardPage() {
           {timeframe === 'this_month' && (
             <div className="flex items-center gap-2">
               <Select value={month.toString()} onValueChange={(val) => setMonth(parseInt(val))}>
-                <SelectTrigger className="w-[140px] h-8 text-xs border-zinc-200 bg-zinc-50/60 font-medium">
+                <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs border-zinc-200 bg-zinc-50/60 font-medium">
                   <SelectValue>{monthNames[month - 1]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -171,7 +171,7 @@ export default function EmployeeLeaderboardPage() {
               <div
                 key={emp.employee_id}
                 className={cn(
-                  "relative rounded-xl border p-5 flex flex-col justify-between transition-all",
+                  "relative rounded-xl border p-4 sm:p-5 flex flex-col justify-between transition-all",
                   podiumStyles[i],
                   isMe && "ring-2 ring-indigo-500 ring-offset-2"
                 )}
@@ -204,7 +204,7 @@ export default function EmployeeLeaderboardPage() {
                 <div className="mt-4 pt-3 border-t border-zinc-200/60 flex items-baseline justify-between">
                   <div className="flex items-baseline gap-1.5">
                     <Sparkles className="h-4 w-4 text-indigo-500 shrink-0" />
-                    <span className="text-2xl font-bold text-zinc-900">
+                    <span className="text-xl sm:text-2xl font-bold text-zinc-900">
                       {Number(emp.total_points || 0).toLocaleString()}
                     </span>
                     <span className="text-xs text-zinc-500 font-medium">pts</span>
@@ -218,7 +218,7 @@ export default function EmployeeLeaderboardPage() {
       ) : null}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="My Rank"
           value={myData?.current_rank ? `#${myData.current_rank}` : '—'}
@@ -245,7 +245,7 @@ export default function EmployeeLeaderboardPage() {
         />
       </div>
 
-      {/* Full Rankings Table */}
+      {/* Full Rankings Table & Mobile Cards */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold text-zinc-900">
@@ -254,7 +254,7 @@ export default function EmployeeLeaderboardPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-5 space-y-3">
+            <div className="p-4 sm:p-5 space-y-3">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
             </div>
           ) : !leaderboard?.length ? (
@@ -262,28 +262,25 @@ export default function EmployeeLeaderboardPage() {
               No points recorded for this timeframe.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-14">Rank</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead className="text-right">Points Earned</TableHead>
-                  <TableHead className="text-right">Units Sold</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-center">Trend</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile Rank Cards (< 640px) */}
+              <div className="divide-y divide-zinc-100 sm:hidden">
                 {leaderboard.map((emp) => {
                   const isMe = emp.employee_id === myId
                   const prevRank = emp.previous_rank
                   const rankDiff = prevRank ? prevRank - emp.current_rank : 0
 
                   return (
-                    <TableRow key={emp.employee_id} className={cn("transition-colors", isMe ? "bg-indigo-50/50 hover:bg-indigo-50/80" : "hover:bg-zinc-50/80")}>
-                      <TableCell>
+                    <div
+                      key={emp.employee_id}
+                      className={cn(
+                        "p-3 flex items-center justify-between gap-2.5 transition-colors",
+                        isMe ? "bg-indigo-50/60" : "hover:bg-zinc-50/80"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <span className={cn(
-                          "inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold",
+                          "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold",
                           emp.current_rank === 1 ? "bg-amber-400 text-zinc-900" :
                           emp.current_rank === 2 ? "bg-zinc-300 text-zinc-900" :
                           emp.current_rank === 3 ? "bg-orange-300 text-zinc-900" :
@@ -291,53 +288,127 @@ export default function EmployeeLeaderboardPage() {
                         )}>
                           {emp.current_rank}
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2.5">
-                          <Avatar className="h-8 w-8 rounded-lg border border-zinc-200">
-                            <AvatarImage src={emp.avatar_url} className="object-cover" />
-                            <AvatarFallback className="rounded-lg bg-zinc-900 text-white text-xs font-semibold">
-                              {emp.full_name?.charAt(0) || 'E'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col min-w-0">
-                            <span className={cn("text-sm font-semibold truncate", isMe ? "text-indigo-700" : "text-zinc-900")}>
-                              {emp.full_name} {isMe && '(You)'}
+
+                        <Avatar className="h-8 w-8 rounded-lg border border-zinc-200 shrink-0">
+                          <AvatarImage src={emp.avatar_url} className="object-cover" />
+                          <AvatarFallback className="rounded-lg bg-zinc-900 text-white text-xs font-semibold">
+                            {emp.full_name?.charAt(0) || 'E'}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        <div className="flex flex-col min-w-0">
+                          <span className={cn("text-xs font-semibold truncate", isMe ? "text-indigo-700" : "text-zinc-900")}>
+                            {emp.full_name} {isMe && '(You)'}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 truncate">
+                            {emp.employee_code || 'EMP'} • {emp.total_units || 0} units
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                        <span className="font-bold text-zinc-900 text-xs flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-indigo-500" />
+                          {Number(emp.total_points || 0).toLocaleString()} pts
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {getStatusBadge(emp.performance_status)}
+                          {rankDiff > 0 ? (
+                            <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600">
+                              <TrendingUp className="h-2.5 w-2.5" />+{rankDiff}
                             </span>
-                            <span className="text-[11px] text-zinc-500 truncate">{emp.employee_code}</span>
-                          </div>
+                          ) : rankDiff < 0 ? (
+                            <span className="inline-flex items-center text-[10px] font-semibold text-rose-600">
+                              <TrendingDown className="h-2.5 w-2.5" />{rankDiff}
+                            </span>
+                          ) : null}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-                          <span className="font-bold text-zinc-900 text-sm">{Number(emp.total_points || 0).toLocaleString()} pts</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-zinc-700">
-                        {emp.total_units || 0}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {getStatusBadge(emp.performance_status)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {rankDiff > 0 ? (
-                          <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600">
-                            <TrendingUp className="h-3 w-3" /> +{rankDiff}
-                          </span>
-                        ) : rankDiff < 0 ? (
-                          <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-rose-600">
-                            <TrendingDown className="h-3 w-3" /> {rankDiff}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400"><Minus className="h-3 w-3 inline" /></span>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   )
                 })}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop Data Table (>= 640px) */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-14">Rank</TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead className="text-right">Points Earned</TableHead>
+                      <TableHead className="text-right">Units Sold</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-center">Trend</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {leaderboard.map((emp) => {
+                      const isMe = emp.employee_id === myId
+                      const prevRank = emp.previous_rank
+                      const rankDiff = prevRank ? prevRank - emp.current_rank : 0
+
+                      return (
+                        <TableRow key={emp.employee_id} className={cn("transition-colors", isMe ? "bg-indigo-50/50 hover:bg-indigo-50/80" : "hover:bg-zinc-50/80")}>
+                          <TableCell>
+                            <span className={cn(
+                              "inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold",
+                              emp.current_rank === 1 ? "bg-amber-400 text-zinc-900" :
+                              emp.current_rank === 2 ? "bg-zinc-300 text-zinc-900" :
+                              emp.current_rank === 3 ? "bg-orange-300 text-zinc-900" :
+                              "bg-zinc-100 text-zinc-700"
+                            )}>
+                              {emp.current_rank}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2.5">
+                              <Avatar className="h-8 w-8 rounded-lg border border-zinc-200">
+                                <AvatarImage src={emp.avatar_url} className="object-cover" />
+                                <AvatarFallback className="rounded-lg bg-zinc-900 text-white text-xs font-semibold">
+                                  {emp.full_name?.charAt(0) || 'E'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col min-w-0">
+                                <span className={cn("text-sm font-semibold truncate", isMe ? "text-indigo-700" : "text-zinc-900")}>
+                                  {emp.full_name} {isMe && '(You)'}
+                                </span>
+                                <span className="text-[11px] text-zinc-500 truncate">{emp.employee_code}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                              <span className="font-bold text-zinc-900 text-sm">{Number(emp.total_points || 0).toLocaleString()} pts</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-zinc-700">
+                            {emp.total_units || 0}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getStatusBadge(emp.performance_status)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {rankDiff > 0 ? (
+                              <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600">
+                                <TrendingUp className="h-3 w-3" /> +{rankDiff}
+                              </span>
+                            ) : rankDiff < 0 ? (
+                              <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-rose-600">
+                                <TrendingDown className="h-3 w-3" /> {rankDiff}
+                              </span>
+                            ) : (
+                              <span className="text-zinc-400"><Minus className="h-3 w-3 inline" /></span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

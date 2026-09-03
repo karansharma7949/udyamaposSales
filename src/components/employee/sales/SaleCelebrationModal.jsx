@@ -76,29 +76,29 @@ export default function SaleCelebrationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 overflow-hidden border-2 border-emerald-300/80 bg-white shadow-2xl rounded-3xl">
+      <DialogContent className="w-[92vw] sm:max-w-md max-h-[92vh] overflow-y-auto p-0 border-2 border-emerald-300/80 bg-white shadow-2xl rounded-2xl sm:rounded-3xl">
         {/* Glowing Top Banner */}
-        <div className="relative bg-gradient-to-br from-emerald-600 via-teal-600 to-indigo-700 px-6 pt-8 pb-6 text-center text-white overflow-hidden">
+        <div className="relative bg-gradient-to-br from-emerald-600 via-teal-600 to-indigo-700 px-4 pt-6 pb-5 sm:px-6 sm:pt-8 sm:pb-6 text-center text-white overflow-hidden">
           {/* Subtle decorative circles */}
           <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
           <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-amber-400/20 blur-xl pointer-events-none" />
 
           {/* Celebration Trophy Badge */}
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md shadow-inner ring-4 ring-white/30 animate-bounce">
-            <Trophy className="h-8 w-8 text-amber-300 drop-shadow-md" />
+          <div className="mx-auto mb-2.5 sm:mb-3 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md shadow-inner ring-4 ring-white/30 animate-bounce">
+            <Trophy className="h-7 w-7 sm:h-8 sm:w-8 text-amber-300 drop-shadow-md" />
           </div>
 
           <DialogHeader className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md px-3 py-1 text-xs font-semibold text-emerald-100 mx-auto">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-semibold text-emerald-100 mx-auto">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
               Sale Recorded Successfully!
             </div>
-            <DialogTitle className="text-2xl font-black tracking-tight text-white pt-1">
+            <DialogTitle className="text-xl sm:text-2xl font-black tracking-tight text-white pt-1">
               Congratulations, {employeeName}! 🎉
             </DialogTitle>
           </DialogHeader>
 
-          <p className="text-xs text-emerald-100/90 mt-1">
+          <p className="text-[11px] sm:text-xs text-emerald-100/90 mt-1">
             Incredible execution! Your points have been added directly to your monthly score.
           </p>
         </div>

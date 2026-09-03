@@ -358,7 +358,7 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
         )}
 
         {/* Quantity & Date */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <FormField
             control={form.control}
             name="quantity"
@@ -366,7 +366,7 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
               <FormItem>
                 <FormLabel className="text-xs font-semibold text-zinc-700">Quantity</FormLabel>
                 <FormControl>
-                  <Input type="number" min="1" className="h-9 border-zinc-200 bg-zinc-50/50 text-sm" {...field} />
+                  <Input type="number" min="1" className="h-10 sm:h-9 border-zinc-200 bg-zinc-50/50 text-sm" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -387,7 +387,7 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
                         type="button"
                         variant="outline"
                         className={cn(
-                          "pl-3 text-left font-normal h-9 border-zinc-200 bg-zinc-50/50 text-xs",
+                          "pl-3 text-left font-normal h-10 sm:h-9 border-zinc-200 bg-zinc-50/50 text-xs",
                           !field.value && "text-zinc-400"
                         )}
                       >
@@ -434,7 +434,7 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
                   step="0.01"
                   min="0.01"
                   placeholder="Enter the price at which you sold this product"
-                  className="h-9 border-zinc-200 bg-zinc-50/50 font-semibold text-zinc-900 text-sm focus:bg-white"
+                  className="h-10 sm:h-9 border-zinc-200 bg-zinc-50/50 font-semibold text-zinc-900 text-sm focus:bg-white"
                   {...field}
                 />
               </FormControl>
@@ -451,14 +451,14 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
             <FormItem>
               <FormLabel className="text-xs font-semibold text-zinc-700">Notes (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Customer name, invoice #, etc." className="h-9 border-zinc-200 bg-zinc-50/50 text-sm" {...field} />
+                <Input placeholder="e.g. Customer name, invoice #, etc." className="h-10 sm:h-9 border-zinc-200 bg-zinc-50/50 text-sm" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
           <Button
             type="button"
             variant="ghost"
@@ -467,11 +467,16 @@ export default function SaleForm({ initialData, onSubmit, isLoading }) {
               form.reset()
               setSelectedProduct(null)
             }}
-            className="text-xs text-zinc-500"
+            className="w-full sm:w-auto text-xs text-zinc-500 h-9"
           >
             Clear
           </Button>
-          <Button type="submit" size="sm" disabled={isLoading || !selectedProduct} className="gap-1.5 font-medium shadow-xs">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={isLoading || !selectedProduct}
+            className="w-full sm:w-auto gap-1.5 font-medium shadow-xs h-10 sm:h-9"
+          >
             {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShoppingCart className="h-3.5 w-3.5" />}
             Register Sale {calculatedPoints > 0 && `(+${calculatedPoints} pts)`}
           </Button>

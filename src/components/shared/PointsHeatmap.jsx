@@ -12,6 +12,7 @@ import { toLocalDateStr, getTodayLocalStr } from '@/lib/dateUtils'
  */
 export default function PointsHeatmap({ sales = [], year = new Date().getFullYear() }) {
   const [hoveredDay, setHoveredDay] = useState(null)
+  const [selectedDay, setSelectedDay] = useState(null)
 
   // 1. Group sales and sum points by YYYY-MM-DD
   const { dailyPointsMap, totalYearPoints, activeDaysCount, maxPointsInDay, currentStreak } = useMemo(() => {
@@ -105,26 +106,25 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
       }
 
       curr.setDate(curr.getDate() + 1)
-      if (curr > endOfYear && currentWeek.length === 0) break
     }
 
     return { calendarWeeks: weeks, monthPositions: mPositions }
-  }, [year, dailyPointsMap])
+  }, [dailyPointsMap, year])
 
   // Color intensity mapper — even 1 pt should be clearly visible green
   // Each week column is 12px cell + 3px gap = 15px, used for month label positioning
   const WEEK_PX = 15
 
   const getCellColor = (pts, isInYear) => {
-    if (!isInYear) return 'opacity-0 pointer-events-none'
-    if (pts === 0) return 'bg-zinc-200 border border-zinc-300/60 hover:border-zinc-400'
-    if (pts <= 2) return 'bg-emerald-400 border border-emerald-500 hover:ring-1 hover:ring-emerald-400'
-    if (pts <= 5) return 'bg-emerald-500 border border-emerald-600 hover:ring-1 hover:ring-emerald-400'
-    if (pts <= 9) return 'bg-emerald-600 border border-emerald-700 hover:ring-2 hover:ring-emerald-400'
-    return 'bg-emerald-700 border border-emerald-800 hover:ring-2 hover:ring-emerald-300'
+    if (!isInYear) return "bg-transparent opacity-0 pointer-events-none"
+    if (!pts || pts === 0) return "bg-zinc-200/80 hover:bg-zinc-300 dark:bg-zinc-800"
+    if (pts < 20) return "bg-emerald-400 hover:bg-emerald-500 shadow-2xs"
+    if (pts < 50) return "bg-emerald-500 hover:bg-emerald-600 shadow-xs"
+    if (pts < 100) return "bg-emerald-600 hover:bg-emerald-700 shadow-xs"
+    return "bg-emerald-700 hover:bg-emerald-800 ring-1 ring-emerald-900/30 shadow-xs"
   }
 
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const activeDisplayDay = hoveredDay || selectedDay
 
   return (
     <Card className="border-zinc-200 shadow-xs overflow-hidden">
@@ -140,8 +140,8 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
             </CardDescription>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="flex items-center gap-4 text-xs">
+          {/* Quick Metrics Bar — wraps neatly on mobile */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-md font-semibold">
               <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
               <span>{totalYearPoints.toLocaleString()} Total Pts</span>
@@ -158,8 +158,8 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
         </div>
       </CardHeader>
 
-      <CardContent className="p-5">
-        <div className="overflow-x-auto pb-2">
+      <CardContent className="p-4 sm:p-5">
+        <div className="overflow-x-auto pb-2 scrollbar-thin">
           <div className="min-w-[760px]">
             {/* Month Labels — absolutely positioned so each label sits exactly above its week column */}
             {/* WEEK_PX = 15 (12px cell + 3px gap). Day-label gutter = 32px (ml-8) */}
@@ -188,38 +188,43 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
               <div className="flex gap-[3px]">
                 {calendarWeeks.map((week, wIdx) => (
                   <div key={wIdx} className="flex flex-col gap-[3px]">
-                    {week.map((day, dIdx) => (
-                      <div
-                        key={dIdx}
-                        onMouseEnter={() => setHoveredDay(day)}
-                        onMouseLeave={() => setHoveredDay(null)}
-                        className={cn(
-                          "w-[12px] h-[12px] rounded-[2.5px] transition-all duration-150 cursor-pointer relative",
-                          getCellColor(day.points, day.isInYear)
-                        )}
-                      />
-                    ))}
+                    {week.map((day, dIdx) => {
+                      const isHighlighted = (hoveredDay?.dateStr === day.dateStr) || (selectedDay?.dateStr === day.dateStr)
+                      return (
+                        <div
+                          key={dIdx}
+                          onMouseEnter={() => setHoveredDay(day)}
+                          onMouseLeave={() => setHoveredDay(null)}
+                          onClick={() => setSelectedDay(day)}
+                          className={cn(
+                            "w-[12px] h-[12px] rounded-[2.5px] transition-all duration-150 cursor-pointer relative",
+                            getCellColor(day.points, day.isInYear),
+                            isHighlighted && "ring-2 ring-emerald-500 scale-125 z-10"
+                          )}
+                        />
+                      )
+                    })}
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Legend & Tooltip Footer */}
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 text-[11px] text-zinc-500">
-              {/* Dynamic Hover Tooltip Info */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t border-zinc-100 text-[11px] text-zinc-500">
+              {/* Dynamic Hover / Tap Info */}
               <div className="min-h-[20px] font-medium">
-                {hoveredDay && hoveredDay.isInYear ? (
-                  <span className="text-zinc-900 flex items-center gap-1.5">
+                {activeDisplayDay && activeDisplayDay.isInYear ? (
+                  <span className="text-zinc-900 flex flex-wrap items-center gap-1.5">
                     <span className="font-semibold text-emerald-600">
-                      {hoveredDay.points} {hoveredDay.points === 1 ? 'point' : 'points'}
+                      {activeDisplayDay.points} {activeDisplayDay.points === 1 ? 'point' : 'points'}
                     </span>
-                    <span>earned on {hoveredDay.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    {hoveredDay.salesCount > 0 && (
-                      <span className="text-zinc-400">({hoveredDay.salesCount} {hoveredDay.salesCount === 1 ? 'sale' : 'sales'})</span>
+                    <span>earned on {activeDisplayDay.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    {activeDisplayDay.salesCount > 0 && (
+                      <span className="text-zinc-400">({activeDisplayDay.salesCount} {activeDisplayDay.salesCount === 1 ? 'sale' : 'sales'})</span>
                     )}
                   </span>
                 ) : (
-                  <span>Hover over any box to view points earned on that date</span>
+                  <span>Hover or tap any square to view points earned on that date</span>
                 )}
               </div>
 
@@ -235,6 +240,12 @@ export default function PointsHeatmap({ sales = [], year = new Date().getFullYea
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Mobile Swipe Guidance Hint */}
+        <div className="flex items-center justify-between text-[10px] text-zinc-400 mt-2 pt-2 border-t border-zinc-50 sm:hidden">
+          <span>← Swipe horizontally to browse full year</span>
+          <span>52 Weeks ({year})</span>
         </div>
       </CardContent>
     </Card>

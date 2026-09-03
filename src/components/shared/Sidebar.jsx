@@ -32,7 +32,7 @@ const ICON_MAP = {
   settings: Settings,
 }
 
-export function SidebarContent({ menuItems, isCollapsed }) {
+export function SidebarContent({ menuItems, isCollapsed, onItemClick }) {
   const pathname = usePathname() || ''
 
   return (
@@ -47,6 +47,7 @@ export function SidebarContent({ menuItems, isCollapsed }) {
           <Link
             key={item.href}
             href={item.href}
+            onClick={onItemClick}
             className={cn(
               "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all select-none",
               isActive
@@ -67,6 +68,7 @@ export function SidebarContent({ menuItems, isCollapsed }) {
 
 export default function Sidebar({ menuItems = [] }) {
   const { isSidebarOpen, toggleSidebar } = useUIStore()
+  const [mobileOpen, setMobileOpen] = React.useState(false)
 
   return (
     <>
@@ -121,27 +123,36 @@ export default function Sidebar({ menuItems = [] }) {
         </div>
       </aside>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer with Auto-Close on Click */}
       <div className="lg:hidden">
-        <Sheet>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="fixed top-3.5 left-4 z-50 h-9 w-9 bg-white border-zinc-200 shadow-xs">
-              <LayoutDashboard className="h-4 w-4" />
+            <Button
+              variant="outline"
+              size="icon"
+              className="fixed top-3.5 left-3 z-40 h-9 w-9 bg-white border-zinc-200 shadow-xs hover:bg-zinc-100"
+              aria-label="Open Navigation Menu"
+            >
+              <LayoutDashboard className="h-4 w-4 text-zinc-700" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0 flex flex-col bg-white border-r border-zinc-200">
             <div className="h-16 flex items-center px-4 border-b border-zinc-200">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold text-white shadow-xs">
                   U
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-zinc-900">UdyamaPOS</span>
+                  <span className="text-sm font-bold text-zinc-900 leading-tight">UdyamaPOS</span>
                   <span className="text-[10px] text-zinc-500 font-medium">Sales Tracker</span>
                 </div>
               </div>
             </div>
-            <SidebarContent menuItems={menuItems} isCollapsed={false} />
+            <SidebarContent
+              menuItems={menuItems}
+              isCollapsed={false}
+              onItemClick={() => setMobileOpen(false)}
+            />
           </SheetContent>
         </Sheet>
       </div>

@@ -66,15 +66,15 @@ export default function TopNav({ breadcrumbs = [] }) {
   }
 
   return (
-    <header className="h-16 border-b border-zinc-200 bg-white/95 backdrop-blur-xs flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
-      {/* Left Breadcrumbs */}
-      <div className="flex items-center gap-1.5 text-xs text-zinc-500 overflow-hidden">
+    <header className="h-16 border-b border-zinc-200 bg-white/95 backdrop-blur-xs flex items-center justify-between px-3 sm:px-4 lg:px-6 sticky top-0 z-30">
+      {/* Left Breadcrumbs with mobile clearance for hamburger button */}
+      <div className="flex items-center gap-1.5 text-xs text-zinc-500 overflow-hidden pl-11 lg:pl-0">
         {breadcrumbs.map((crumb, index) => (
           <React.Fragment key={crumb.label || index}>
             <Link
               href={crumb.href || '#'}
               className={cn(
-                "hover:text-zinc-900 transition-colors truncate",
+                "hover:text-zinc-900 transition-colors truncate max-w-[120px] sm:max-w-[200px]",
                 index === breadcrumbs.length - 1 && "text-zinc-900 font-semibold"
               )}
             >
@@ -86,7 +86,7 @@ export default function TopNav({ breadcrumbs = [] }) {
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {isAdmin ? (
           <Badge variant="default" className="bg-zinc-900 text-white gap-1.5 py-1 px-2.5 text-xs font-semibold shadow-xs">
             <ShieldCheck className="h-3.5 w-3.5" />
