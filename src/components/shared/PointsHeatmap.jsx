@@ -1,0 +1,242 @@
+'use client'
+
+import React, { useState, useMemo } from 'react'
+import { Sparkles, Flame, Calendar, Trophy, Zap } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { toLocalDateStr, getTodayLocalStr } from '@/lib/dateUtils'
+
+/**
+ * GitHub-Style Contribution Heatmap for Points Performance
+ * Displays daily points earned across the calendar year with interactive tooltips.
+ */
+export default function PointsHeatmap({ sales = [], year = new Date().getFullYear() }) {
+  const [hoveredDay, setHoveredDay] = useState(null)
+
+  // 1. Group sales and sum points by YYYY-MM-DD
+  const { dailyPointsMap, totalYearPoints, activeDaysCount, maxPointsInDay, currentStreak } = useMemo(() => {
+    const map = {}
+    let totalPts = 0
+
+    sales.forEach(sale => {
+      if (!sale.sale_date) return
+      // Parse the UTC timestamp and convert to LOCAL date string — critical for IST users
+      const localDateStr = toLocalDateStr(new Date(sale.sale_date))
+      const pts = Number(sale.points_earned || 0)
+      const qty = Number(sale.quantity || 1)
+
+      if (!map[localDateStr]) {
+        map[localDateStr] = { points: 0, salesCount: 0, units: 0, date: localDateStr }
+      }
+      map[localDateStr].points += pts
+      map[localDateStr].salesCount += 1
+      map[localDateStr].units += qty
+      totalPts += pts
+    })
+
+    const activeDays = Object.keys(map).filter(k => map[k].points > 0).length
+    const maxPts = Math.max(0, ...Object.values(map).map(d => d.points))
+
+    // Calculate current streak using LOCAL date keys
+    let streak = 0
+    const todayStr = getTodayLocalStr()
+    for (let i = 0; i < 365; i++) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const k = toLocalDateStr(d)
+      if (map[k] && map[k].points > 0) {
+        streak++
+      } else if (i > 0) {
+        break
+      }
+    }
+
+    return {
+      dailyPointsMap: map,
+      totalYearPoints: totalPts,
+      activeDaysCount: activeDays,
+      maxPointsInDay: maxPts,
+      currentStreak: streak,
+    }
+  }, [sales])
+
+  // 2. Generate 52-week calendar grid (Jan 1 to Dec 31 of current year)
+  const { calendarWeeks, monthPositions } = useMemo(() => {
+    const startOfYear = new Date(year, 0, 1)
+    const endOfYear = new Date(year, 11, 31)
+
+    // Find start of first week (Sunday/Monday aligned)
+    const firstDayOfWeek = startOfYear.getDay() // 0 = Sun, 1 = Mon ...
+    const startDate = new Date(startOfYear)
+    startDate.setDate(startDate.getDate() - firstDayOfWeek)
+
+    const weeks = []
+    let currentWeek = []
+    let curr = new Date(startDate)
+
+    const mPositions = []
+    let lastMonth = -1
+
+    while (curr <= endOfYear || currentWeek.length > 0) {
+      // Use LOCAL date string — toISOString() would shift by -5:30 for IST, giving wrong day key
+      const dateStr = toLocalDateStr(curr)
+      const isInYear = curr.getFullYear() === year
+      const dayData = dailyPointsMap[dateStr] || { points: 0, salesCount: 0, date: dateStr }
+
+      if (isInYear && curr.getMonth() !== lastMonth && curr.getDate() <= 7) {
+        mPositions.push({
+          month: curr.toLocaleString('default', { month: 'short' }),
+          weekIndex: weeks.length,
+        })
+        lastMonth = curr.getMonth()
+      }
+
+      currentWeek.push({
+        date: new Date(curr),
+        dateStr,
+        points: dayData.points,
+        salesCount: dayData.salesCount,
+        isInYear,
+      })
+
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek)
+        currentWeek = []
+      }
+
+      curr.setDate(curr.getDate() + 1)
+      if (curr > endOfYear && currentWeek.length === 0) break
+    }
+
+    return { calendarWeeks: weeks, monthPositions: mPositions }
+  }, [year, dailyPointsMap])
+
+  // Color intensity mapper — even 1 pt should be clearly visible green
+  // Each week column is 12px cell + 3px gap = 15px, used for month label positioning
+  const WEEK_PX = 15
+
+  const getCellColor = (pts, isInYear) => {
+    if (!isInYear) return 'opacity-0 pointer-events-none'
+    if (pts === 0) return 'bg-zinc-200 border border-zinc-300/60 hover:border-zinc-400'
+    if (pts <= 2) return 'bg-emerald-400 border border-emerald-500 hover:ring-1 hover:ring-emerald-400'
+    if (pts <= 5) return 'bg-emerald-500 border border-emerald-600 hover:ring-1 hover:ring-emerald-400'
+    if (pts <= 9) return 'bg-emerald-600 border border-emerald-700 hover:ring-2 hover:ring-emerald-400'
+    return 'bg-emerald-700 border border-emerald-800 hover:ring-2 hover:ring-emerald-300'
+  }
+
+  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  return (
+    <Card className="border-zinc-200 shadow-xs overflow-hidden">
+      <CardHeader className="pb-3 border-b border-zinc-100">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-sm font-semibold text-zinc-900 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-emerald-600" />
+              Daily Points Activity Heatmap ({year})
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Visual log of daily points earned throughout the year
+            </CardDescription>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-md font-semibold">
+              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+              <span>{totalYearPoints.toLocaleString()} Total Pts</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-md font-semibold">
+              <Flame className="h-3.5 w-3.5 text-amber-500" />
+              <span>{currentStreak} Day Streak</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2.5 py-1 rounded-md font-medium">
+              <Trophy className="h-3.5 w-3.5 text-zinc-500" />
+              <span>Best: {maxPointsInDay} pts/day</span>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-5">
+        <div className="overflow-x-auto pb-2">
+          <div className="min-w-[760px]">
+            {/* Month Labels — absolutely positioned so each label sits exactly above its week column */}
+            {/* WEEK_PX = 15 (12px cell + 3px gap). Day-label gutter = 32px (ml-8) */}
+            <div className="relative mb-2" style={{ height: '14px', marginLeft: '32px' }}>
+              {monthPositions.map((pos, idx) => (
+                <span
+                  key={idx}
+                  className="absolute text-[10px] font-semibold text-zinc-500"
+                  style={{ left: `${pos.weekIndex * WEEK_PX}px` }}
+                >
+                  {pos.month}
+                </span>
+              ))}
+            </div>
+
+            {/* Grid Container */}
+            <div className="flex gap-1.5">
+              {/* Day Labels (Mon, Wed, Fri) */}
+              <div className="flex flex-col justify-between text-[10px] font-medium text-zinc-400 h-[105px] pr-1 select-none">
+                <span>Mon</span>
+                <span>Wed</span>
+                <span>Fri</span>
+              </div>
+
+              {/* 52 Columns */}
+              <div className="flex gap-[3px]">
+                {calendarWeeks.map((week, wIdx) => (
+                  <div key={wIdx} className="flex flex-col gap-[3px]">
+                    {week.map((day, dIdx) => (
+                      <div
+                        key={dIdx}
+                        onMouseEnter={() => setHoveredDay(day)}
+                        onMouseLeave={() => setHoveredDay(null)}
+                        className={cn(
+                          "w-[12px] h-[12px] rounded-[2.5px] transition-all duration-150 cursor-pointer relative",
+                          getCellColor(day.points, day.isInYear)
+                        )}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Legend & Tooltip Footer */}
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 text-[11px] text-zinc-500">
+              {/* Dynamic Hover Tooltip Info */}
+              <div className="min-h-[20px] font-medium">
+                {hoveredDay && hoveredDay.isInYear ? (
+                  <span className="text-zinc-900 flex items-center gap-1.5">
+                    <span className="font-semibold text-emerald-600">
+                      {hoveredDay.points} {hoveredDay.points === 1 ? 'point' : 'points'}
+                    </span>
+                    <span>earned on {hoveredDay.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    {hoveredDay.salesCount > 0 && (
+                      <span className="text-zinc-400">({hoveredDay.salesCount} {hoveredDay.salesCount === 1 ? 'sale' : 'sales'})</span>
+                    )}
+                  </span>
+                ) : (
+                  <span>Hover over any box to view points earned on that date</span>
+                )}
+              </div>
+
+              {/* Intensity Scale Legend */}
+              <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
+                <span>Less</span>
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-zinc-200 border border-zinc-300/60 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-400 border border-emerald-500 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-500 border border-emerald-600 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-600 border border-emerald-700 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-700 border border-emerald-800 inline-block" />
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
